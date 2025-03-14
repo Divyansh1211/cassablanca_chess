@@ -2,7 +2,7 @@ import { ChessboardComponent } from "./components/Chessboard";
 
 export default function Home() {
   return (
-    <div className="flex">
+    <div>
       <ChessboardComponent />
     </div>
   );

@@ -1,7 +1,10 @@
 {
-  "name": "http-backend",
+  "name": "db",
   "module": "index.ts",
   "type": "module",
+  "exports": {
+    ".": "./index.ts"
+  },
   "devDependencies": {
     "@types/bun": "latest"
   },
@@ -9,9 +12,7 @@
     "typescript": "^5.0.0"
   },
   "dependencies": {
-    "@types/express": "^5.0.0",
-    "cors": "^2.8.5",
-    "db": "*",
-    "express": "^4.21.2"
+    "@prisma/client": "^6.5.0",
+    "prisma": "^6.5.0"
   }
 }
