@@ -1,5 +1,5 @@
 {
-  "name": "my-turborepo",
+  "name": "cassablanca_chess",
   "private": true,
   "scripts": {
     "build": "turbo run build",
