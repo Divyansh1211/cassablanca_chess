@@ -57,6 +57,8 @@ export const ChessboardComponent = () => {
     targetSquare: string,
     piece: string
   ) => {
+    const turnColor = gameData?.color === "WHITE" ? "w" : "b";
+    if (game?.turn() !== turnColor) return false;
     const move = game?.move({
       from: sourceSquare,
       to: targetSquare,

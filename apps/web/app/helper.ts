@@ -8,6 +8,7 @@ export interface IGameData {
   pgn: string;
   players: any;
   user: any;
+  color: "WHITE" | "BLACK";
 }
 
 export function moveFormatter(
