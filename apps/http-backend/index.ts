@@ -23,24 +23,46 @@ app.get("/loadRandomGame", authMiddleware, async (req, res) => {
       id: Math.floor(Math.random() * 10),
     },
   });
-  const moves = await client.chessGame.findMany({
-    where: {
+  const currGame = await client.chessGame.create({
+    include: {
+      players: {
+        include: {
+          user: true,
+        },
+      },
+    },
+    data: {
+      color: "WHITE",
       userId: req.user.id,
-      fen: game?.fen,
-      pgn: game?.pgn,
+      gameStatus: "IN_PROGRESS",
+      fen: game?.fen ?? "",
+      pgn: game?.pgn ?? "",
+      result: "IN_PROGRESS",
+      players: {
+        create: {
+          userId: req.user.id,
+          color: "WHITE",
+        },
+      },
+      isJoinable: true,
     },
   });
-  res.json(game);
+  res.json(currGame);
 });
 
 app.get("/active", authMiddleware, async (req, res) => {
   const user = req.user.id;
   try {
-    const active = await client.activeGame.findMany({
-      where: {
+    const active = await client.chessGame.findFirst({
+      include: {
         players: {
-          hasEvery: [user],
+          include: {
+            user: true,
+          },
         },
+      },
+      where: {
+        AND: [{ userId: user }, { gameStatus: "IN_PROGRESS" }],
       },
     });
     res.status(200).json(active);
@@ -50,29 +72,68 @@ app.get("/active", authMiddleware, async (req, res) => {
 });
 
 app.get("/checkExisting", authMiddleware, async (req, res) => {
-  const user = req.user.id;
   try {
-    const active = await client.activeGame.findFirst({
-      where: {
+    const active = await client.chessGame.findFirst({
+      include: {
         players: {
-          hasSome: [],
+          include: {
+            user: true,
+          },
         },
       },
+      where: {
+        isJoinable: true,
+      },
     });
-    if (active && active.players.length == 1) {
-      await client.activeGame.update({
+    if (active && active?.players[0].userId !== req.user.id) {
+      const existingGame = await client.chessGame.create({
+        include: {
+          players: {
+            include: {
+              user: true,
+            },
+          },
+        },
+        data: {
+          color: "BLACK",
+          userId: req.user.id,
+          gameStatus: "IN_PROGRESS",
+          fen: active.fen,
+          pgn: active.pgn,
+          result: "IN_PROGRESS",
+          players: {
+            create: [
+              {
+                userId: active.players[0].userId,
+                color: "WHITE",
+              },
+              {
+                userId: req.user.id,
+                color: "BLACK",
+              },
+            ],
+          },
+          isJoinable: false,
+        },
+      });
+      await client.chessGame.update({
         where: {
           id: active.id,
         },
         data: {
           players: {
-            push: user,
+            create: {
+              userId: req.user.id,
+              color: "BLACK",
+            },
           },
+          isJoinable: false,
         },
       });
-      res.status(200).json(active);
+
+      res.status(200).json(existingGame);
     }
-    res.status(404).json({ error: "No active game found" });
+    res.status(404).json({ message: "No existing game found" });
   } catch (e: any) {
     res.status(500).json({ error: e.message });
   }

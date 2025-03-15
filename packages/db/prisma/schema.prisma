@@ -14,13 +14,14 @@ datasource db {
 }
 
 model User {
-  id         String      @id @default(cuid())
-  email      String      @unique
+  id         String       @id @default(cuid())
+  email      String       @unique
   name       String?
   password   String
   chessGames ChessGame[]
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @updatedAt
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+  PlayerData PlayerData[]
 }
 
 enum Result {
@@ -30,25 +31,39 @@ enum Result {
   IN_PROGRESS
 }
 
-model ChessGame {
-  id        String   @id @default(cuid())
-  user      User     @relation(fields: [userId], references: [id])
-  userId    String
-  fen       String
-  pgn       String
-  result    Result
-  moves     String[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+model PlayerData {
+  id          String     @id @default(cuid())
+  userId      String
+  user        User       @relation(fields: [userId], references: [id])
+  color       String
+  ChessGame   ChessGame? @relation(fields: [chessGameId], references: [id])
+  chessGameId String?
 }
 
-model ActiveGame {
-  id        Int      @id @default(autoincrement())
-  fen       String
-  pgn       String
-  players   String[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+enum GameStatus {
+  WAITING
+  IN_PROGRESS
+  FINISHED
+}
+
+enum Color {
+  WHITE
+  BLACK
+}
+
+model ChessGame {
+  id         String       @id @default(cuid())
+  user       User         @relation(fields: [userId], references: [id])
+  userId     String
+  fen        String
+  pgn        String
+  color      Color
+  result     Result
+  gameStatus GameStatus
+  isJoinable Boolean      @default(false)
+  players    PlayerData[]
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
 }
 
 model PastPlayedGame {

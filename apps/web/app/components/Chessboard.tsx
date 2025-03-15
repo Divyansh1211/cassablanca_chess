@@ -9,15 +9,14 @@ import { BACKEND_URL } from "../config";
 import { PlayerCard } from "./PlayerCard";
 import { Action } from "./Action";
 import { MoveTable } from "./MoveTable";
+import {
+  checkExistingGame,
+  getActiveGame,
+  getRandomGame,
+  IGameData,
+} from "../helper";
 
 // let socket: Socket = io("http://localhost:3001");
-
-interface IGameData {
-  fen: string;
-  pgn: string;
-  player1: string;
-  player2: string;
-}
 
 export const ChessboardComponent = () => {
   const [game, setGame] = useState<Chess>();
@@ -25,36 +24,18 @@ export const ChessboardComponent = () => {
   const [gamePosition, setGamePosition] = useState<string>();
   const [blackMoves, setBlackMoves] = useState<string[]>([]);
   const [whiteMoves, setWhiteMoves] = useState<string[]>([]);
-
-  async function getRandomGame() {
-    const res = await axios.get(`${BACKEND_URL}/loadRandomGame`);
-    const newGame = new Chess();
-    newGame.load(res.data.fen);
-    setGameData(res.data);
-    setGame(newGame);
-    moveFormatter(res.data.pgn);
-    setGamePosition(newGame.fen());
-  }
-
-  function moveFormatter(pgn: string) {
-    const moves: string[] = pgn.split(" ");
-    let white = [];
-    let black = [];
-    for (let i = 0; i < moves.length; i++) {
-      if (i % 2 === 0) {
-        moves[i] = moves[i]?.split(".")[1] ?? "";
-        white.push(`${moves[i]}\n`);
-      } else {
-        black.push(`${moves[i]}\n`);
-      }
-    }
-    setWhiteMoves(white);
-    setBlackMoves(black);
-  }
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
     //position of the past games
-    getRandomGame();
+    getRandomGame(
+      setGame,
+      setGameData,
+      setGamePosition,
+      setWhiteMoves,
+      setBlackMoves,
+      setIsLoading
+    );
 
     // socket.on("connect", () => {
     //   console.log("Connected to Socket.io server");
@@ -98,14 +79,18 @@ export const ChessboardComponent = () => {
     // findBestMove();
     return true;
   };
-  return (
+  return gameData?.players.length === 1 || isLoading ? (
+    <div className="flex flex-col justify-center items-center">
+      Waiting for opponent
+    </div>
+  ) : (
     <div className="grid grid-cols-8 gap-4 w-full place-items-center bg-gradient-to-r from-[#b58863] to-[#f0d9b5]">
       <div className="w-[785px] flex flex-col col-span-6 ">
-        <PlayerCard playerName={gameData?.player1 ?? ""} />
+        <PlayerCard playerName={gameData?.players[0].user.name ?? ""} />
         <div className="flex-grow flex m-4 items-center justify-center border">
           <Chessboard id="" onPieceDrop={onDrop} position={game?.fen()} />
         </div>
-        <PlayerCard playerName={gameData?.player2 ?? ""} />
+        <PlayerCard playerName={gameData?.players[1].user.name ?? ""} />
       </div>
       <div className="flex flex-col col-span-2">
         <MoveTable whiteMoves={whiteMoves} blackMoves={blackMoves} />
