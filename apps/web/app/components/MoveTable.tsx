@@ -10,10 +10,8 @@ export const MoveTable = ({
   const moveContainerRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
     if (moveContainerRef.current) {
-      setTimeout(() => {
-        moveContainerRef.current!.scrollTop =
-          moveContainerRef.current!.scrollHeight;
-      }, 100);
+      moveContainerRef.current.scrollTop =
+        moveContainerRef.current.scrollHeight;
     }
   }, [whiteMoves, blackMoves]);
   return (
