@@ -1,22 +1,14 @@
 "use client";
-
-import axios from "axios";
 import { Chess } from "chess.js";
 import { useEffect, useState } from "react";
 import { Chessboard } from "react-chessboard";
 import { io, Socket } from "socket.io-client";
-import { BACKEND_URL } from "../config";
 import { PlayerCard } from "./PlayerCard";
 import { Action } from "./Action";
 import { MoveTable } from "./MoveTable";
-import {
-  checkExistingGame,
-  getActiveGame,
-  getRandomGame,
-  IGameData,
-} from "../helper";
+import { getRandomGame, IGameData } from "../helper";
 
-// let socket: Socket = io("http://localhost:3001");
+let socket: Socket = io("http://localhost:3001");
 
 export const ChessboardComponent = () => {
   const [game, setGame] = useState<Chess>();
@@ -26,31 +18,58 @@ export const ChessboardComponent = () => {
   const [whiteMoves, setWhiteMoves] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
+  function convertToPgn(blackMoves: string[], whiteMoves: string[]): string {
+    let pgn = "";
+    for (let i = 0; i < whiteMoves.length; i++) {
+      pgn += ` ${i + 1}. ${whiteMoves[i]} ${blackMoves[i]}`;
+    }
+    return pgn;
+  }
+
   useEffect(() => {
-    //position of the past games
-    getRandomGame(
-      setGame,
-      setGameData,
-      setGamePosition,
-      setWhiteMoves,
-      setBlackMoves,
-      setIsLoading
-    );
-
-    // socket.on("connect", () => {
-    //   console.log("Connected to Socket.io server");
-    // });
-
-    // socket.on("move", (move) => {
-    //   console.log("Move received: ", move);
-    //   game.move(move);
-    //   setGamePosition(game.fen());
-    // });
-
-    // return () => {
-    //   socket.disconnect();
-    // };
+    (async () => {
+      await getRandomGame(
+        setGame,
+        setGameData,
+        setGamePosition,
+        setWhiteMoves,
+        setBlackMoves,
+        setIsLoading
+      );
+    })();
   }, []);
+
+  useEffect(() => {
+    if (!gameData) return;
+    socket.on("connect", () => {
+      console.log("Connected to Socket.io server");
+    });
+
+    socket.emit("join", gameData?.lobbyId);
+
+    socket.on("move", ({ move, socketId }) => {
+      const turnColor = gameData?.color === "WHITE" ? "w" : "b";
+      try {
+        console.log(move, game?.turn(), turnColor);
+        if (socket.id === socketId) return;
+        const moveData = game?.move(move);
+        if (moveData) {
+          if (moveData.color === "w") {
+            whiteMoves.push(moveData.san);
+          } else {
+            blackMoves.push(moveData.san);
+          }
+          setGamePosition(game?.fen());
+        }
+      } catch (e) {
+        console.log(e);
+      }
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [gameData]);
 
   const onDrop = (
     sourceSquare: string,
@@ -66,19 +85,31 @@ export const ChessboardComponent = () => {
     });
     if (move?.color === "w") {
       whiteMoves.push(move.san);
+      socket.emit("move", { move: move.san, room: gameData?.lobbyId });
     } else {
       blackMoves.push(move!.san);
+      socket.emit("move", { move: move?.san, room: gameData?.lobbyId });
     }
     setGamePosition(game?.fen());
 
     // illegal move
     if (move === null) return false;
 
-    // socket.emit("move", move);
+    if (game?.isGameOver() || game?.isDraw()) {
+      const result = game?.isDraw()
+        ? "DRAW"
+        : game?.turn() === "w"
+          ? "BLACK_WIN"
+          : "WHITE_WIN";
+      socket.emit("end-game", {
+        fen: game?.fen(),
+        pgn: convertToPgn(blackMoves, whiteMoves),
+        result: result,
+        id: gameData?.lobbyId,
+      });
+      return false;
+    }
 
-    // exit if the game? is over
-    if (game?.isGameOver() || game?.isDraw()) return false;
-    // findBestMove();
     return true;
   };
   return gameData?.players.length === 1 || isLoading ? (

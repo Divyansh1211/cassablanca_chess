@@ -53,6 +53,7 @@ enum Color {
 
 model ChessGame {
   id         String       @id @default(cuid())
+  lobbyId    String
   user       User         @relation(fields: [userId], references: [id])
   userId     String
   fen        String

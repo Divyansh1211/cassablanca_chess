@@ -4,6 +4,7 @@ import { BACKEND_URL } from "./config";
 import { Chess } from "chess.js";
 
 export interface IGameData {
+  lobbyId: string;
   fen: string;
   pgn: string;
   players: any;

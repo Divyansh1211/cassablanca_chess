@@ -4,6 +4,7 @@ import cors from "cors";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { authMiddleware } from "./middleware";
+import crypto from "crypto";
 
 const app = express();
 const PORT = 8080;
@@ -32,6 +33,7 @@ app.get("/loadRandomGame", authMiddleware, async (req, res) => {
       },
     },
     data: {
+      lobbyId: crypto.randomBytes(16).toString("hex"),
       color: "WHITE",
       userId: req.user.id,
       gameStatus: "IN_PROGRESS",
@@ -95,6 +97,7 @@ app.get("/checkExisting", authMiddleware, async (req, res) => {
           },
         },
         data: {
+          lobbyId: active.lobbyId,
           color: "BLACK",
           userId: req.user.id,
           gameStatus: "IN_PROGRESS",
