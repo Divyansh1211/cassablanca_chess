@@ -6,22 +6,26 @@ import { io, Socket } from "socket.io-client";
 import { PlayerCard } from "./PlayerCard";
 import { Action } from "./Action";
 import { MoveTable } from "./MoveTable";
-import { getRandomGame, IGameData } from "../helper";
+import { getRandomGame, IGameData, moveFormatter } from "../helper";
 
 let socket: Socket = io("http://localhost:3001");
 
 export const ChessboardComponent = () => {
-  const [game, setGame] = useState<Chess>();
+  let [game, setGame] = useState<Chess>();
   const [gameData, setGameData] = useState<IGameData | null>(null);
   const [gamePosition, setGamePosition] = useState<string>();
   const [blackMoves, setBlackMoves] = useState<string[]>([]);
   const [whiteMoves, setWhiteMoves] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [players, setPlayers] = useState<any[]>([]);
+  const [gameStarted, setGameStarted] = useState<boolean>(false);
 
   function convertToPgn(blackMoves: string[], whiteMoves: string[]): string {
     let pgn = "";
     for (let i = 0; i < whiteMoves.length; i++) {
-      pgn += ` ${i + 1}. ${whiteMoves[i]} ${blackMoves[i]}`;
+      const white = whiteMoves[i] ?? "";
+      const black = blackMoves[i] ?? "";
+      pgn += ` ${i + 1}.${white} ${black}`;
     }
     return pgn;
   }
@@ -41,25 +45,62 @@ export const ChessboardComponent = () => {
 
   useEffect(() => {
     if (!gameData) return;
-    socket.on("connect", () => {
+
+    socket.connect();
+
+    socket.off("connect").on("connect", () => {
       console.log("Connected to Socket.io server");
     });
 
-    socket.emit("join", gameData?.lobbyId);
+    socket.emit(
+      "join-lobby",
+      gameData.lobbyId,
+      gameData.user.name,
+      gameData.fen,
+      gameData.pgn
+    );
 
-    socket.on("move", ({ move, socketId }) => {
+    socket.off("get-fen").on("get-fen", (fen, pgn) => {
+      console.log("FEN received: ", fen);
+      console.log("PGN received: ", pgn);
+
+      if (fen === null || pgn === null) return;
+      setGameData((prev: any) => {
+        if (prev?.fen === fen && prev?.pgn === pgn) return prev;
+        return { ...prev, fen, pgn };
+      });
+      game = new Chess();
+      game.load(fen);
+      setGame(game);
+      moveFormatter(pgn, setWhiteMoves, setBlackMoves);
+      setGamePosition(game.fen());
+    });
+
+    socket.off("lobby-update").on("lobby-update", (players) => {
+      setPlayers(players);
+    });
+
+    socket.off("start-game").on("start-game", ({ message }) => {
+      console.log(message);
+      setGameStarted(true);
+    });
+
+    socket.off("move").on("move", ({ move, socketId }) => {
+      if (!game) return;
       const turnColor = gameData?.color === "WHITE" ? "w" : "b";
       try {
-        console.log(move, game?.turn(), turnColor);
+        console.log(move, game.turn(), turnColor);
         if (socket.id === socketId) return;
-        const moveData = game?.move(move);
+        const moveData = game.move(move);
         if (moveData) {
-          if (moveData.color === "w") {
-            whiteMoves.push(moveData.san);
-          } else {
-            blackMoves.push(moveData.san);
-          }
-          setGamePosition(game?.fen());
+          console.log("moveData exists:", moveData.san);
+          setWhiteMoves(
+            moveData.color === "w" ? [...whiteMoves, moveData.san] : whiteMoves
+          );
+          setBlackMoves(
+            moveData.color === "b" ? [...blackMoves, moveData.san] : blackMoves
+          );
+          setGamePosition(game.fen());
         }
       } catch (e) {
         console.log(e);
@@ -67,9 +108,12 @@ export const ChessboardComponent = () => {
     });
 
     return () => {
-      socket.disconnect();
+      socket.off("get-fen");
+      socket.off("lobby-update");
+      socket.off("start-game");
+      socket.off("move");
     };
-  }, [gameData]);
+  }, [gameData?.lobbyId]);
 
   const onDrop = (
     sourceSquare: string,
@@ -85,14 +129,23 @@ export const ChessboardComponent = () => {
     });
     if (move?.color === "w") {
       whiteMoves.push(move.san);
-      socket.emit("move", { move: move.san, room: gameData?.lobbyId });
+      socket.emit("move", {
+        move: move.san,
+        room: gameData?.lobbyId,
+        fen: game?.fen(),
+        recieving_pgn: convertToPgn(blackMoves, whiteMoves),
+      });
     } else {
       blackMoves.push(move!.san);
-      socket.emit("move", { move: move?.san, room: gameData?.lobbyId });
+      socket.emit("move", {
+        move: move?.san,
+        room: gameData?.lobbyId,
+        fen: game?.fen(),
+        recieving_pgn: convertToPgn(blackMoves, whiteMoves),
+      });
     }
     setGamePosition(game?.fen());
 
-    // illegal move
     if (move === null) return false;
 
     if (game?.isGameOver() || game?.isDraw()) {
@@ -112,18 +165,18 @@ export const ChessboardComponent = () => {
 
     return true;
   };
-  return gameData?.players.length === 1 || isLoading ? (
+  return !gameStarted || isLoading || players.length < 2 ? (
     <div className="flex flex-col justify-center items-center">
       Waiting for opponent
     </div>
   ) : (
     <div className="grid grid-cols-8 gap-4 w-full place-items-center bg-gradient-to-r from-[#b58863] to-[#f0d9b5]">
       <div className="w-[785px] flex flex-col col-span-6 ">
-        <PlayerCard playerName={gameData?.players[0].user.name ?? ""} />
+        <PlayerCard playerName={players[0].player ?? ""} />
         <div className="flex-grow flex m-4 items-center justify-center border">
           <Chessboard id="" onPieceDrop={onDrop} position={game?.fen()} />
         </div>
-        <PlayerCard playerName={gameData?.players[1].user.name ?? ""} />
+        <PlayerCard playerName={players[1].player ?? "Guest Player"} />
       </div>
       <div className="flex flex-col col-span-2">
         <MoveTable whiteMoves={whiteMoves} blackMoves={blackMoves} />

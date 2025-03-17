@@ -7,7 +7,6 @@ export interface IGameData {
   lobbyId: string;
   fen: string;
   pgn: string;
-  players: any;
   user: any;
   color: "WHITE" | "BLACK";
 }
@@ -17,15 +16,16 @@ export function moveFormatter(
   setWhiteMoves: Dispatch<SetStateAction<string[]>>,
   setBlackMoves: Dispatch<SetStateAction<string[]>>
 ) {
-  const moves: string[] = pgn.split(" ");
-  let white = [];
-  let black = [];
+  const moves: string[] = pgn.split(/\s+/).filter(Boolean); // Ensure no empty spaces
+  let white: string[] = [];
+  let black: string[] = [];
+
   for (let i = 0; i < moves.length; i++) {
+    const move = moves[i]?.includes(".") ? moves[i]?.split(".")[1] : moves[i];
     if (i % 2 === 0) {
-      moves[i] = moves[i]?.split(".")[1] ?? "";
-      white.push(`${moves[i]}\n`);
+      white.push(move!);
     } else {
-      black.push(`${moves[i]}\n`);
+      black.push(move!);
     }
   }
   setWhiteMoves(white);

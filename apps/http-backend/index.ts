@@ -26,11 +26,12 @@ app.get("/loadRandomGame", authMiddleware, async (req, res) => {
   });
   const currGame = await client.chessGame.create({
     include: {
-      players: {
-        include: {
-          user: true,
-        },
-      },
+      // players: {
+      //   include: {
+      //     user: true,
+      //   },
+      // },
+      user: true,
     },
     data: {
       lobbyId: crypto.randomBytes(16).toString("hex"),
@@ -57,11 +58,12 @@ app.get("/active", authMiddleware, async (req, res) => {
   try {
     const active = await client.chessGame.findFirst({
       include: {
-        players: {
-          include: {
-            user: true,
-          },
-        },
+        // players: {
+        //   include: {
+        //     user: true,
+        //   },
+        // },
+        user: true,
       },
       where: {
         AND: [{ userId: user }, { gameStatus: "IN_PROGRESS" }],
@@ -77,24 +79,26 @@ app.get("/checkExisting", authMiddleware, async (req, res) => {
   try {
     const active = await client.chessGame.findFirst({
       include: {
-        players: {
-          include: {
-            user: true,
-          },
-        },
+        // players: {
+        //   include: {
+        //     user: true,
+        //   },
+        // },
+        user: true,
       },
       where: {
         isJoinable: true,
       },
     });
-    if (active && active?.players[0].userId !== req.user.id) {
+    if (active && active?.userId !== req.user.id) {
       const existingGame = await client.chessGame.create({
         include: {
-          players: {
-            include: {
-              user: true,
-            },
-          },
+          // players: {
+          //   include: {
+          //     user: true,
+          //   },
+          // },
+          user: true,
         },
         data: {
           lobbyId: active.lobbyId,
@@ -107,7 +111,7 @@ app.get("/checkExisting", authMiddleware, async (req, res) => {
           players: {
             create: [
               {
-                userId: active.players[0].userId,
+                userId: active.userId,
                 color: "WHITE",
               },
               {
