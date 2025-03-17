@@ -41,12 +41,12 @@ app.get("/loadRandomGame", authMiddleware, async (req, res) => {
       fen: game?.fen ?? "",
       pgn: game?.pgn ?? "",
       result: "IN_PROGRESS",
-      players: {
-        create: {
-          userId: req.user.id,
-          color: "WHITE",
-        },
-      },
+      // players: {
+      //   create: {
+      //     userId: req.user.id,
+      //     color: "WHITE",
+      //   },
+      // },
       isJoinable: true,
     },
   });
@@ -108,18 +108,18 @@ app.get("/checkExisting", authMiddleware, async (req, res) => {
           fen: active.fen,
           pgn: active.pgn,
           result: "IN_PROGRESS",
-          players: {
-            create: [
-              {
-                userId: active.userId,
-                color: "WHITE",
-              },
-              {
-                userId: req.user.id,
-                color: "BLACK",
-              },
-            ],
-          },
+          // players: {
+          //   create: [
+          //     {
+          //       userId: active.userId,
+          //       color: "WHITE",
+          //     },
+          //     {
+          //       userId: req.user.id,
+          //       color: "BLACK",
+          //     },
+          //   ],
+          // },
           isJoinable: false,
         },
       });
@@ -128,12 +128,12 @@ app.get("/checkExisting", authMiddleware, async (req, res) => {
           id: active.id,
         },
         data: {
-          players: {
-            create: {
-              userId: req.user.id,
-              color: "BLACK",
-            },
-          },
+          // players: {
+          //   create: {
+          //     userId: req.user.id,
+          //     color: "BLACK",
+          //   },
+          // },
           isJoinable: false,
         },
       });
@@ -149,6 +149,15 @@ app.get("/checkExisting", authMiddleware, async (req, res) => {
 app.post("/signup", async (req, res) => {
   const { email, username, password } = req.body;
   const passwordHash = bcrypt.hashSync(password, 10);
+  const user = await client.user.findFirst({
+    where: {
+      email,
+    },
+  });
+  if (user) {
+    res.json({ error: "User already exists" });
+    return;
+  }
   try {
     await client.user.create({
       data: {
@@ -174,11 +183,11 @@ app.post("/login", async (req, res) => {
       },
     });
     if (!user) {
-      res.status(404).json({ error: "User not found" });
+      res.json({ error: "User not found" });
       return;
     }
     if (!bcrypt.compareSync(password, user.password)) {
-      res.status(401).json({ error: "Invalid password" });
+      res.json({ error: "Invalid password" });
       return;
     }
     const token = jwt.sign(
@@ -187,7 +196,7 @@ app.post("/login", async (req, res) => {
       },
       JwtSecret!
     );
-    res.status(200).json({ token });
+    res.json({ token });
   } catch (e: any) {
     res.status(500).json({ error: e.message });
   }

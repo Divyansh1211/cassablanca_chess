@@ -18,15 +18,19 @@ const Signup = () => {
 
     if (isLogin) {
       const res = await axios.post(`${BACKEND_URL}/login`, formData);
-      if (res.status === 200) {
+      if (res.data.token) {
         localStorage.setItem("token", res.data.token);
-        window.location.href = "/";
+        window.location.href = "/chessboard";
+      } else {
+        alert(res.data.error);
       }
     } else {
       const res = await axios.post(`${BACKEND_URL}/signup`, formData);
       if (res.status === 201) {
         alert("User created successfully");
         setIsLogin(true);
+      } else {
+        alert(res.data.error);
       }
     }
   };

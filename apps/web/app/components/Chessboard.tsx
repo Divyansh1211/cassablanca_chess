@@ -7,6 +7,7 @@ import { PlayerCard } from "./PlayerCard";
 import { Action } from "./Action";
 import { MoveTable } from "./MoveTable";
 import { getRandomGame, IGameData, moveFormatter } from "../helper";
+import { redirect } from "next/navigation";
 
 let socket: Socket = io("http://localhost:3001");
 
@@ -31,16 +32,18 @@ export const ChessboardComponent = () => {
   }
 
   useEffect(() => {
-    (async () => {
-      await getRandomGame(
-        setGame,
-        setGameData,
-        setGamePosition,
-        setWhiteMoves,
-        setBlackMoves,
-        setIsLoading
-      );
-    })();
+    localStorage.getItem("token")
+      ? (async () => {
+          await getRandomGame(
+            setGame,
+            setGameData,
+            setGamePosition,
+            setWhiteMoves,
+            setBlackMoves,
+            setIsLoading
+          );
+        })()
+      : redirect("/signup");
   }, []);
 
   useEffect(() => {

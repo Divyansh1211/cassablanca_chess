@@ -21,7 +21,7 @@ model User {
   chessGames ChessGame[]
   createdAt  DateTime     @default(now())
   updatedAt  DateTime     @updatedAt
-  PlayerData PlayerData[]
+  // PlayerData PlayerData[]
 }
 
 enum Result {
@@ -31,14 +31,14 @@ enum Result {
   IN_PROGRESS
 }
 
-model PlayerData {
-  id          String     @id @default(cuid())
-  userId      String
-  user        User       @relation(fields: [userId], references: [id])
-  color       String
-  ChessGame   ChessGame? @relation(fields: [chessGameId], references: [id])
-  chessGameId String?
-}
+// model PlayerData {
+//   id          String     @id @default(cuid())
+//   userId      String
+//   user        User       @relation(fields: [userId], references: [id])
+//   color       String
+//   ChessGame   ChessGame? @relation(fields: [chessGameId], references: [id])
+//   chessGameId String?
+// }
 
 enum GameStatus {
   WAITING
@@ -62,7 +62,7 @@ model ChessGame {
   result     Result
   gameStatus GameStatus
   isJoinable Boolean      @default(false)
-  players    PlayerData[]
+  // players    PlayerData[]
   createdAt  DateTime     @default(now())
   updatedAt  DateTime     @updatedAt
 }
