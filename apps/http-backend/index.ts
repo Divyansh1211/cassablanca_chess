@@ -13,8 +13,6 @@ export const JwtSecret = process.env.JWT_SECRET;
 
 const allowedOrigins = [
   "http://localhost:3000",
-  "http://localhost:8080",
-  "http://api.divyansh.lol",
   "http://chess.divyansh.lol",
 ];
 
