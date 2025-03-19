@@ -7,6 +7,7 @@ const io = new Server(3001, {
     credentials: true,
     methods: ["GET", "POST"],
   },
+  path: "/socket",
 });
 
 const lobbies: any = {};

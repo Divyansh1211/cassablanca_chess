@@ -10,7 +10,7 @@ import { getRandomGame, IGameData, moveFormatter } from "../helper";
 import { redirect } from "next/navigation";
 
 let socket: Socket = io("http://localhost:3001", {
-  path: "/",
+  path: "/socket",
 });
 
 export const ChessboardComponent = () => {
