@@ -13,7 +13,7 @@ export const JwtSecret = process.env.JWT_SECRET;
 
 const allowedOrigins = ["http://localhost:3000", "http://chess.divyansh.lol"];
 
-app.use(cors());
+// app.use(cors());
 // app.use(
 //   cors({
 //     origin: function (origin, callback) {
