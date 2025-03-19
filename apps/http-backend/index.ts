@@ -11,9 +11,22 @@ const PORT = 8080;
 
 export const JwtSecret = process.env.JWT_SECRET;
 
+const allowedOrigins = [
+  "http://localhost:3000",
+  "http://localhost:8080",
+  "http://api.divyansh.lol",
+  "http://chess.divyansh.lol",
+];
+
 app.use(
   cors({
-    origin: ["http://localhost:3000", "http://chess.divyansh.lol"],
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, origin);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     methods: ["GET", "POST"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
