@@ -2,10 +2,11 @@ import { Server, Socket } from "socket.io";
 import { saveGame } from "./helper";
 
 const io = new Server(3001, {
-  // cors: {
-  //   origin: "http://localhost:3000",
-  //   methods: ["GET", "POST"],
-  // },
+  cors: {
+    origin: true,
+    credentials: true,
+    methods: ["GET", "POST"],
+  },
 });
 
 const lobbies: any = {};
