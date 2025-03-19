@@ -7,8 +7,13 @@ const nextConfig = {
         headers: [
           {
             key: "Content-Security-Policy",
-            value:
-              "default-src 'self'; connect-src 'self' http://api.divyansh.lol ws://ws.divyansh.lol;",
+            value: `
+              default-src 'self'; 
+              script-src 'self' 'unsafe-inline' 'unsafe-eval'; 
+              style-src 'self' 'unsafe-inline'; 
+              connect-src 'self' http://api.divyansh.lol ws://ws.divyansh.lol; 
+              img-src 'self' data:;
+            `.replace(/\s{2,}/g, " "), // Removes unnecessary spaces
           },
           {
             key: "Access-Control-Allow-Origin",
