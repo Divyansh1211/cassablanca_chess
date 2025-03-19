@@ -14,6 +14,8 @@ export const JwtSecret = process.env.JWT_SECRET;
 app.use(
   cors({
     origin: ["http://localhost:3000", "http://chess.divyansh.lol"],
+    methods: ["GET", "POST"],
+    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
 app.use(express.json());
