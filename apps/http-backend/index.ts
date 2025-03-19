@@ -29,6 +29,10 @@ const allowedOrigins = ["http://localhost:3000", "http://chess.divyansh.lol"];
 // );
 app.use(express.json());
 
+app.get("/health", (req, res) => {
+  res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });
+});
+
 app.get("/loadRandomGame", authMiddleware, async (req, res) => {
   const game = await client.pastPlayedGame.findFirst({
     where: {
