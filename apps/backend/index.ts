@@ -1,12 +1,22 @@
 import { Server, Socket } from "socket.io";
 import { saveGame } from "./helper";
+import express from "express";
+import http from "http";
 
-const io = new Server(3001, {
+const app = express();
+const server = http.createServer(app); 
+const PORT = 3001;
+
+const io = new Server(server, {
   cors: {
-    origin: true,
+    origin: "http://chess.divyansh.lol",
     credentials: true,
     methods: ["GET", "POST"],
   },
+});
+
+app.get("/health", (req, res) => {
+  res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });
 });
 
 const lobbies: any = {};
@@ -52,4 +62,8 @@ io.on("connection", (socket) => {
       io.to(lobbyId).emit("lobby-update", lobbies[lobbyId]);
     }
   });
+});
+
+server.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
 });
