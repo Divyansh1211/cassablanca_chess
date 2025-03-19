@@ -11,24 +11,22 @@ const PORT = 8080;
 
 export const JwtSecret = process.env.JWT_SECRET;
 
-const allowedOrigins = [
-  "http://localhost:3000",
-  "http://chess.divyansh.lol",
-];
+const allowedOrigins = ["http://localhost:3000", "http://chess.divyansh.lol"];
 
-app.use(
-  cors({
-    origin: function (origin, callback) {
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error("Not allowed by CORS"));
-      }
-    },
-    methods: ["GET", "POST"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-  })
-);
+app.use(cors());
+// app.use(
+//   cors({
+//     origin: function (origin, callback) {
+//       if (!origin || allowedOrigins.includes(origin)) {
+//         callback(null, true);
+//       } else {
+//         callback(new Error("Not allowed by CORS"));
+//       }
+//     },
+//     methods: ["GET", "POST"],
+//     allowedHeaders: ["Content-Type", "Authorization"],
+//   })
+// );
 app.use(express.json());
 
 app.get("/loadRandomGame", authMiddleware, async (req, res) => {
