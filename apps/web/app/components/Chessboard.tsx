@@ -9,7 +9,9 @@ import { MoveTable } from "./MoveTable";
 import { getRandomGame, IGameData, moveFormatter } from "../helper";
 import { redirect } from "next/navigation";
 
-let socket: Socket = io("http://localhost:3001");
+let socket: Socket = io("http://localhost:3001", {
+  path: "/",
+});
 
 export const ChessboardComponent = () => {
   let [game, setGame] = useState<Chess>();
