@@ -11,9 +11,9 @@ const PORT = 8080;
 
 export const JwtSecret = process.env.JWT_SECRET;
 
-const allowedOrigins = ["http://localhost:3000", "http://chess.divyansh.lol"];
+// const allowedOrigins = ["http://localhost:3000", "http://chess.divyansh.lol"];
 
-// app.use(cors());
+app.use(cors());
 // app.use(
 //   cors({
 //     origin: function (origin, callback) {
@@ -41,28 +41,25 @@ app.get("/loadRandomGame", authMiddleware, async (req, res) => {
   });
   const currGame = await client.chessGame.create({
     include: {
-      // players: {
-      //   include: {
-      //     user: true,
-      //   },
-      // },
-      user: true,
+      PlayerData: true,
     },
     data: {
-      lobbyId: crypto.randomBytes(16).toString("hex"),
-      color: "WHITE",
       userId: req.user.id,
+      color: "WHITE",
+      name: req.user.name,
+      lobbyId: crypto.randomBytes(16).toString("hex"),
       gameStatus: "IN_PROGRESS",
       fen: game?.fen ?? "",
       pgn: game?.pgn ?? "",
       result: "IN_PROGRESS",
-      // players: {
-      //   create: {
-      //     userId: req.user.id,
-      //     color: "WHITE",
-      //   },
-      // },
       isJoinable: true,
+      PlayerData: {
+        create: {
+          userId: req.user.id,
+          color: "WHITE",
+          userName: req.user.name,
+        },
+      },
     },
   });
   res.json(currGame);
@@ -73,15 +70,15 @@ app.get("/active", authMiddleware, async (req, res) => {
   try {
     const active = await client.chessGame.findFirst({
       include: {
-        // players: {
-        //   include: {
-        //     user: true,
-        //   },
-        // },
-        user: true,
+        PlayerData: true,
       },
       where: {
-        AND: [{ userId: user }, { gameStatus: "IN_PROGRESS" }],
+        AND: [
+          {
+            userId: user,
+          },
+          { gameStatus: "IN_PROGRESS" },
+        ],
       },
     });
     res.status(200).json(active);
@@ -93,14 +90,6 @@ app.get("/active", authMiddleware, async (req, res) => {
 app.get("/checkExisting", authMiddleware, async (req, res) => {
   try {
     const active = await client.chessGame.findFirst({
-      include: {
-        // players: {
-        //   include: {
-        //     user: true,
-        //   },
-        // },
-        user: true,
-      },
       where: {
         isJoinable: true,
       },
@@ -108,33 +97,31 @@ app.get("/checkExisting", authMiddleware, async (req, res) => {
     if (active && active?.userId !== req.user.id) {
       const existingGame = await client.chessGame.create({
         include: {
-          // players: {
-          //   include: {
-          //     user: true,
-          //   },
-          // },
-          user: true,
+          PlayerData: true,
         },
         data: {
           lobbyId: active.lobbyId,
           color: "BLACK",
           userId: req.user.id,
+          name: req.user.name,
           gameStatus: "IN_PROGRESS",
           fen: active.fen,
           pgn: active.pgn,
           result: "IN_PROGRESS",
-          // players: {
-          //   create: [
-          //     {
-          //       userId: active.userId,
-          //       color: "WHITE",
-          //     },
-          //     {
-          //       userId: req.user.id,
-          //       color: "BLACK",
-          //     },
-          //   ],
-          // },
+          PlayerData: {
+            create: [
+              {
+                userId: active.userId,
+                color: "WHITE",
+                userName: active.name,
+              },
+              {
+                userId: req.user.id,
+                color: "BLACK",
+                userName: req.user.name,
+              },
+            ],
+          },
           isJoinable: false,
         },
       });
@@ -143,16 +130,16 @@ app.get("/checkExisting", authMiddleware, async (req, res) => {
           id: active.id,
         },
         data: {
-          // players: {
-          //   create: {
-          //     userId: req.user.id,
-          //     color: "BLACK",
-          //   },
-          // },
+          PlayerData: {
+            create: {
+              userId: req.user.id,
+              color: "BLACK",
+              userName: req.user.name,
+            },
+          },
           isJoinable: false,
         },
       });
-
       res.status(200).json(existingGame);
     }
     res.status(404).json({ message: "No existing game found" });
@@ -208,6 +195,7 @@ app.post("/login", async (req, res) => {
     const token = jwt.sign(
       {
         id: user.id,
+        name: user.name,
       },
       JwtSecret!
     );

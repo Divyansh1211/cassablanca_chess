@@ -3,33 +3,38 @@ import { Dispatch, SetStateAction } from "react";
 import { BACKEND_URL } from "./config";
 import { Chess } from "chess.js";
 
+// const BACKEND_URL = process.env.BACKEND_URL;
+
 export interface IGameData {
   lobbyId: string;
   fen: string;
   pgn: string;
-  user: any;
   color: "WHITE" | "BLACK";
+  name: string;
+  PlayerData: any;
 }
 
 export function moveFormatter(
   pgn: string,
   setWhiteMoves: Dispatch<SetStateAction<string[]>>,
   setBlackMoves: Dispatch<SetStateAction<string[]>>
+  // white: string[],
+  // black: string[]
 ) {
-  const moves: string[] = pgn.split(/\s+/).filter(Boolean); // Ensure no empty spaces
-  let white: string[] = [];
-  let black: string[] = [];
+  const moves: string[] = pgn.split(/\s+/).filter(Boolean);
+  // let white: string[] = [];
+  // let black: string[] = [];
 
   for (let i = 0; i < moves.length; i++) {
     const move = moves[i]?.includes(".") ? moves[i]?.split(".")[1] : moves[i];
     if (i % 2 === 0) {
-      white.push(move!);
+      setWhiteMoves((prev) => [...prev, move!]);
     } else {
-      black.push(move!);
+      setBlackMoves((prev) => [...prev, move!]);
     }
   }
-  setWhiteMoves(white);
-  setBlackMoves(black);
+  // setWhiteMoves(white);
+  // setBlackMoves(black);
 }
 
 function setGameMetaData(

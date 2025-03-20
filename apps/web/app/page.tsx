@@ -1,6 +1,5 @@
 "use client";
 
-import { redirect } from "next/navigation";
 import { useEffect, useState } from "react";
 
 export default function Home() {
@@ -9,5 +8,7 @@ export default function Home() {
     setToken(localStorage.getItem("token"));
   }, []);
 
-  return token ? redirect("/chessboard") : redirect("/signup");
+  return token !== null
+    ? window.location.replace("/chessboard")
+    : window.location.replace("/signup");
 }

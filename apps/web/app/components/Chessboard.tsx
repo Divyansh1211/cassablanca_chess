@@ -8,8 +8,12 @@ import { Action } from "./Action";
 import { MoveTable } from "./MoveTable";
 import { getRandomGame, IGameData, moveFormatter } from "../helper";
 import { redirect } from "next/navigation";
+import { WS_URL } from "../config";
+import { BoardOrientation } from "react-chessboard/dist/chessboard/types";
+import { VictoryModal } from "./VictoryModal";
+import { WaitingModal } from "./WaitingModal";
 
-let socket: Socket = io("http://chess-ws.divyansh.lol", {
+let socket: Socket = io(WS_URL, {
   path: "/socket.io",
   transports: ["websocket", "polling"],
 });
@@ -23,6 +27,9 @@ export const ChessboardComponent = () => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [players, setPlayers] = useState<any[]>([]);
   const [gameStarted, setGameStarted] = useState<boolean>(false);
+  const [userFound, setUserFound] = useState<boolean>(false);
+  const [isOver, setIsOver] = useState<boolean>(false);
+  const [winner, setWinner] = useState<string>("");
 
   function convertToPgn(blackMoves: string[], whiteMoves: string[]): string {
     let pgn = "";
@@ -54,22 +61,17 @@ export const ChessboardComponent = () => {
 
     socket.connect();
 
-    socket.off("connect").on("connect", () => {
-      console.log("Connected to Socket.io server");
-    });
+    socket.off("connect").on("connect", () => {});
 
     socket.emit(
       "join-lobby",
       gameData.lobbyId,
-      gameData.user.name,
+      gameData.name,
       gameData.fen,
       gameData.pgn
     );
 
     socket.off("get-fen").on("get-fen", (fen, pgn) => {
-      console.log("FEN received: ", fen);
-      console.log("PGN received: ", pgn);
-
       if (fen === null || pgn === null) return;
       setGameData((prev: any) => {
         if (prev?.fen === fen && prev?.pgn === pgn) return prev;
@@ -87,19 +89,16 @@ export const ChessboardComponent = () => {
     });
 
     socket.off("start-game").on("start-game", ({ message }) => {
-      console.log(message);
-      setGameStarted(true);
+      setUserFound(true);
     });
 
     socket.off("move").on("move", ({ move, socketId }) => {
       if (!game) return;
       const turnColor = gameData?.color === "WHITE" ? "w" : "b";
       try {
-        console.log(move, game.turn(), turnColor);
         if (socket.id === socketId) return;
         const moveData = game.move(move);
         if (moveData) {
-          console.log("moveData exists:", moveData.san);
           setWhiteMoves(
             moveData.color === "w" ? [...whiteMoves, moveData.san] : whiteMoves
           );
@@ -108,12 +107,24 @@ export const ChessboardComponent = () => {
           );
           setGamePosition(game.fen());
         }
-      } catch (e) {
-        console.log(e);
-      }
+      } catch (e) {}
+    });
+
+    socket.off("end-game").on("end-game", ({ socketId, result }) => {
+      console.log("Game over");
+      if (socketId === socket.id) return;
+      setWinner(
+        result === "WHITE_WIN" && gameData?.color === "WHITE"
+          ? (gameData?.name ?? "")
+          : gameData?.name !== gameData?.PlayerData[0]?.userName
+            ? (gameData?.PlayerData[0]?.userName ?? "")
+            : (gameData?.PlayerData[1]?.userName ?? "")
+      );
+      setIsOver(true);
     });
 
     return () => {
+      socket.off("end-game");
       socket.off("get-fen");
       socket.off("lobby-update");
       socket.off("start-game");
@@ -164,30 +175,61 @@ export const ChessboardComponent = () => {
         fen: game?.fen(),
         pgn: convertToPgn(blackMoves, whiteMoves),
         result: result,
+        lobbyId: gameData?.lobbyId,
         id: gameData?.lobbyId,
       });
+      setWinner(
+        gameData?.color === "WHITE" && result === "WHITE_WIN"
+          ? gameData?.name
+          : gameData?.name !== gameData?.PlayerData[0]?.userName
+            ? gameData?.PlayerData[0]?.userName
+            : gameData?.PlayerData[1]?.userName
+      );
+      setIsOver(true);
       return false;
     }
-
     return true;
   };
-  return !gameStarted || isLoading || players.length < 2 ? (
-    <div className="flex flex-col justify-center items-center">
-      Waiting for opponent
-    </div>
+  return !gameStarted || isLoading ? (
+    <WaitingModal setGameStarted={setGameStarted} userFound={userFound} />
   ) : (
-    <div className="grid grid-cols-8 gap-4 w-full place-items-center bg-gradient-to-r from-[#b58863] to-[#f0d9b5]">
+    <div className="grid grid-cols-4 lg:grid-cols-8 gap-4 w-full place-items-center bg-gradient-to-r from-[#b58863] to-[#f0d9b5]">
       <div className="w-[785px] flex flex-col col-span-6 ">
-        <PlayerCard playerName={players[0].player ?? ""} />
+        <PlayerCard
+          playerName={
+            gameData?.PlayerData.length < 2
+              ? players[1].player
+              : gameData?.color === gameData?.PlayerData[0]?.color
+                ? gameData?.PlayerData[1]?.userName
+                : gameData?.PlayerData[0]?.userName
+          }
+        />
         <div className="flex-grow flex m-4 items-center justify-center border">
-          <Chessboard id="" onPieceDrop={onDrop} position={game?.fen()} />
+          <Chessboard
+            boardOrientation={
+              (gameData?.color.toLowerCase() as BoardOrientation) ?? "white"
+            }
+            id=""
+            onPieceDrop={onDrop}
+            position={game?.fen()}
+          />
         </div>
-        <PlayerCard playerName={players[1].player ?? "Guest Player"} />
+        <PlayerCard playerName={gameData?.name ?? ""} />
       </div>
-      <div className="flex flex-col col-span-2">
+      <div className="flex flex-col col-span-4 lg:col-span-2">
         <MoveTable whiteMoves={whiteMoves} blackMoves={blackMoves} />
-        <Action />
+        <Action
+          fen={game?.fen() ?? ""}
+          pgn={convertToPgn(blackMoves, whiteMoves)}
+          socket={socket}
+          setIsOver={setIsOver}
+          setWinner={setWinner}
+          gameData={gameData}
+        />
       </div>
+      {isOver && (
+        <VictoryModal winner={winner} onClose={() => setIsOver(false)} />
+      )}
     </div>
   );
 };

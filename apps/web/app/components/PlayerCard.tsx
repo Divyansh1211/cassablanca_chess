@@ -13,8 +13,9 @@ export const PlayerCard = ({ playerName }: { playerName: string }) => {
       className={`flex items-center gap-4 p-4 bg-[#302e2c] rounded-lg `}
     >
       <img
-        // src={player.avatar}
-        alt={playerName[0]?.toUpperCase()}
+        src={
+          "https://upload.wikimedia.org/wikipedia/commons/7/72/Default-welcomer.png"
+        }
         className="w-12 h-12 rounded-full border-2 border-[#7fa650]"
       />
       <div

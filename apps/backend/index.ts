@@ -4,12 +4,12 @@ import express from "express";
 import http from "http";
 
 const app = express();
-const server = http.createServer(app); 
+const server = http.createServer(app);
 const PORT = 3001;
 
 const io = new Server(server, {
   cors: {
-    origin: "http://chess.divyansh.lol",
+    origin: ["http://chess.divyansh.lol", "http://localhost:3000"],
     credentials: true,
     methods: ["GET", "POST"],
   },
@@ -24,8 +24,6 @@ let moves: any = {};
 let pgn: any = {};
 
 io.on("connection", (socket) => {
-  console.log("A user connected");
-
   socket.on("join-lobby", (lobbyId, player, fen, recieving_pgn) => {
     if (!lobbies[lobbyId]) {
       lobbies[lobbyId] = [];
@@ -52,7 +50,9 @@ io.on("connection", (socket) => {
     io.to(room).emit("move", { move, socketId: socket.id });
   });
 
-  socket.on("end-game", saveGame);
+  socket.on("end-game", (gameData) => {
+    saveGame(io, socket, gameData);
+  });
 
   socket.on("disconnect", () => {
     for (const lobbyId in lobbies) {

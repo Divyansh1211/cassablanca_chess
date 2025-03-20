@@ -5,6 +5,8 @@ import { ArrowRight, ChevronRight, Lock, Mail, User } from "lucide-react";
 import { useState } from "react";
 import { BACKEND_URL } from "../config";
 
+// const BACKEND_URL = process.env.BACKEND_URL;
+
 const Signup = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [formData, setFormData] = useState({
