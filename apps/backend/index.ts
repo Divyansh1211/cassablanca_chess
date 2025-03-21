@@ -39,12 +39,13 @@ io.on("connection", (socket) => {
     io.to(lobbyId).emit("lobby-update", lobbies[lobbyId]);
 
     if (lobbies[lobbyId].length === 2) {
-      io.to(lobbyId).emit("get-fen", moves[lobbyId], pgn[lobbyId]);
+      io.to(lobbyId).emit("get-fen", moves[lobbyId], pgn[lobbyId], socket.id);
       io.to(lobbyId).emit("start-game", { message: "Game started!" });
     }
   });
 
   socket.on("move", ({ move, room, fen, recieving_pgn }) => {
+    // console.log(`recieving pgn: ${recieving_pgn}`);
     moves[room] = fen;
     pgn[room] = recieving_pgn;
     io.to(room).emit("move", { move, socketId: socket.id });

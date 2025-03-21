@@ -2,6 +2,7 @@ import axios from "axios";
 import { Dispatch, SetStateAction } from "react";
 import { BACKEND_URL } from "./config";
 import { Chess } from "chess.js";
+import { Socket } from "socket.io-client";
 
 // const BACKEND_URL = process.env.BACKEND_URL;
 
@@ -18,23 +19,22 @@ export function moveFormatter(
   pgn: string,
   setWhiteMoves: Dispatch<SetStateAction<string[]>>,
   setBlackMoves: Dispatch<SetStateAction<string[]>>
-  // white: string[],
-  // black: string[]
 ) {
   const moves: string[] = pgn.split(/\s+/).filter(Boolean);
-  // let white: string[] = [];
-  // let black: string[] = [];
+  const white: string[] = [];
+  const black: string[] = [];
 
   for (let i = 0; i < moves.length; i++) {
     const move = moves[i]?.includes(".") ? moves[i]?.split(".")[1] : moves[i];
     if (i % 2 === 0) {
-      setWhiteMoves((prev) => [...prev, move!]);
+      white.push(move!);
     } else {
-      setBlackMoves((prev) => [...prev, move!]);
+      black.push(move!);
     }
   }
-  // setWhiteMoves(white);
-  // setBlackMoves(black);
+
+  setWhiteMoves((prev) => [...prev, ...white]);
+  setBlackMoves((prev) => [...prev, ...black]);
 }
 
 function setGameMetaData(

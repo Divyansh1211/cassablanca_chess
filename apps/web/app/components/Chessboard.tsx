@@ -32,13 +32,13 @@ export const ChessboardComponent = () => {
   const [winner, setWinner] = useState<string>("");
 
   function convertToPgn(blackMoves: string[], whiteMoves: string[]): string {
-    let pgn = "";
+    let pgn = [];
     for (let i = 0; i < whiteMoves.length; i++) {
       const white = whiteMoves[i] ?? "";
       const black = blackMoves[i] ?? "";
-      pgn += ` ${i + 1}.${white} ${black}`;
+      pgn.push(`${i + 1}.${white} ${black}`.trim());
     }
-    return pgn;
+    return pgn.join(" ");
   }
 
   useEffect(() => {
@@ -71,15 +71,19 @@ export const ChessboardComponent = () => {
       gameData.pgn
     );
 
-    socket.off("get-fen").on("get-fen", (fen, pgn) => {
+    socket.off("get-fen").on("get-fen", (fen, pgn, socketId) => {
       if (fen === null || pgn === null) return;
-      setGameData((prev: any) => {
-        if (prev?.fen === fen && prev?.pgn === pgn) return prev;
-        return { ...prev, fen, pgn };
+      if (socket.id !== socketId) return;
+      setGameData({
+        ...gameData,
+        fen: fen,
+        pgn: pgn,
       });
       game = new Chess();
       game.load(fen);
       setGame(game);
+      setWhiteMoves([]);
+      setBlackMoves([]);
       moveFormatter(pgn, setWhiteMoves, setBlackMoves);
       setGamePosition(game.fen());
     });
@@ -94,24 +98,21 @@ export const ChessboardComponent = () => {
 
     socket.off("move").on("move", ({ move, socketId }) => {
       if (!game) return;
-      const turnColor = gameData?.color === "WHITE" ? "w" : "b";
       try {
         if (socket.id === socketId) return;
         const moveData = game.move(move);
         if (moveData) {
-          setWhiteMoves(
-            moveData.color === "w" ? [...whiteMoves, moveData.san] : whiteMoves
-          );
-          setBlackMoves(
-            moveData.color === "b" ? [...blackMoves, moveData.san] : blackMoves
-          );
+          if (moveData.color === "w") {
+            whiteMoves.push(moveData.san);
+          } else {
+            blackMoves.push(moveData.san);
+          }
           setGamePosition(game.fen());
         }
       } catch (e) {}
     });
 
     socket.off("end-game").on("end-game", ({ socketId, result }) => {
-      console.log("Game over");
       if (socketId === socket.id) return;
       setWinner(
         result === "WHITE_WIN" && gameData?.color === "WHITE"
