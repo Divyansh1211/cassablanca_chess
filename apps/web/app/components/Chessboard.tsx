@@ -13,7 +13,7 @@ import { BoardOrientation } from "react-chessboard/dist/chessboard/types";
 import { VictoryModal } from "./VictoryModal";
 import { WaitingModal } from "./WaitingModal";
 
-let socket: Socket = io(WS_URL, {
+const socket: Socket = io(WS_URL, {
   path: "/socket.io",
   transports: ["websocket", "polling"],
 });
