@@ -199,7 +199,7 @@ export const ChessboardComponent = () => {
         <PlayerCard
           playerName={
             gameData?.PlayerData.length < 2
-              ? players[1].player
+              ? "Waiting For Player"
               : gameData?.color === gameData?.PlayerData[0]?.color
                 ? gameData?.PlayerData[1]?.userName
                 : gameData?.PlayerData[0]?.userName
