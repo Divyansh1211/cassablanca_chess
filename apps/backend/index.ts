@@ -29,7 +29,10 @@ io.on("connection", (socket) => {
       lobbies[lobbyId] = [];
     }
 
-    if (lobbies[lobbyId].length < 2) {
+    const existingPlayer = lobbies[lobbyId].find(
+      (player: any) => player.id === socket.id
+    );
+    if (lobbies[lobbyId].length < 2 && !existingPlayer) {
       lobbies[lobbyId].push({ id: socket.id, player });
       socket.join(lobbyId);
     }

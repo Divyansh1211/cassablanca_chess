@@ -18,6 +18,10 @@ const socket: Socket = io(WS_URL, {
   transports: ["websocket", "polling"],
 });
 
+interface PlayersMetaData {
+  player1: { name: string; color: string };
+  player2: { name: string; color: string };
+}
 export const ChessboardComponent = () => {
   let [game, setGame] = useState<Chess>();
   const [gameData, setGameData] = useState<IGameData | null>(null);
@@ -26,6 +30,8 @@ export const ChessboardComponent = () => {
   const [whiteMoves, setWhiteMoves] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [players, setPlayers] = useState<any[]>([]);
+  const [playersMetaData, setPlayersMetaData] =
+    useState<PlayersMetaData | null>(null);
   const [gameStarted, setGameStarted] = useState<boolean>(false);
   const [userFound, setUserFound] = useState<boolean>(false);
   const [isOver, setIsOver] = useState<boolean>(false);
@@ -90,10 +96,31 @@ export const ChessboardComponent = () => {
 
     socket.off("lobby-update").on("lobby-update", (players) => {
       setPlayers(players);
+      localStorage.setItem(gameData.color, gameData.name);
+      localStorage.setItem(
+        gameData.color === "WHITE" ? "BLACK" : "WHITE",
+        gameData.name === players[0].player ? players[1].player : players[0].player
+      );
     });
 
     socket.off("start-game").on("start-game", ({ message }) => {
       setUserFound(true);
+      const player1Name = localStorage.getItem(gameData.color);
+      const player2Name = localStorage.getItem(
+        gameData.color === "WHITE" ? "BLACK" : "WHITE"
+      );
+      if (player1Name && player2Name) {
+        setPlayersMetaData({
+          player1: {
+            name: player1Name,
+            color: gameData.color,
+          },
+          player2: {
+            name: player2Name,
+            color: gameData.color === "WHITE" ? "BLACK" : "WHITE",
+          },
+        });
+      }
     });
 
     socket.off("move").on("move", ({ move, socketId }) => {
@@ -198,11 +225,12 @@ export const ChessboardComponent = () => {
       <div className="w-[785px] flex flex-col col-span-6 ">
         <PlayerCard
           playerName={
-            gameData?.PlayerData.length < 2
-              ? "Waiting For Player"
-              : gameData?.color === gameData?.PlayerData[0]?.color
-                ? gameData?.PlayerData[1]?.userName
-                : gameData?.PlayerData[0]?.userName
+            playersMetaData?.player2?.name ?? ""
+            // gameData?.PlayerData.length < 2
+            //   ? players[1].player
+            //   : gameData?.color === gameData?.PlayerData[0]?.color
+            //     ? gameData?.PlayerData[1]?.userName
+            //     : gameData?.PlayerData[0]?.userName
           }
         />
         <div className="flex-grow flex m-4 items-center justify-center border">
